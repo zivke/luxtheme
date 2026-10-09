@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "redhat.java",
+    "redhat.vscode-xml",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "anthropic.claude-code"
+  ]
+}

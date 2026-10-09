@@ -1,0 +1,22 @@
+# Build output
+build/
+*.apk
+
+# Signing keys: never commit these
+*.p12
+*.jks
+*.keystore
+# Key password for build.sh
+.env
+
+# Java language server output, if it is ever pointed at the project folder
+bin/
+
+# Claude Code: .claude/settings.json is shared and tracked; local overrides are not
+.claude/settings.local.json
+
+# Editor / OS cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~

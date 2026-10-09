@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lux Theme</string>
+    <string name="lux_label">Current light level</string>
+    <string name="lux_none">– lx</string>
+    <string name="enabled">Switch theme automatically</string>
+    <string name="threshold_label">Dark theme below (lux)</string>
+    <string name="debounce_label">Debounce (seconds)</string>
+    <string name="save">Save</string>
+    <string name="test_dark">Dark now</string>
+    <string name="test_light">Light now</string>
+    <string name="test_label">Test the root command</string>
+    <string name="hint">Needs root (Magisk). Tap one of the test buttons once and grant superuser access when Magisk asks.</string>
+    <string name="channel_name">Light monitor</string>
+    <string name="log_label">Recent events (newest first)</string>
+</resources>
