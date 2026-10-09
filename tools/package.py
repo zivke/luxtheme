@@ -16,7 +16,8 @@ FIXED_DATE = (2026, 1, 1, 0, 0, 0)
 
 with zipfile.ZipFile(base_apk) as src, open(out, "wb") as raw:
     entries = [(i.filename, src.read(i.filename)) for i in src.infolist()]
-    # This D8 release hashes too few bytes for the header's SHA-1 field, so redo both header sums.
+    # An old D8 release hashed too few bytes for the header's SHA-1 field, so redo both
+    # header sums. With a correct D8 this writes the same values again.
     code = bytearray(open(dex, "rb").read())
     code[12:32] = hashlib.sha1(code[32:]).digest()
     code[8:12] = struct.pack("<I", zlib.adler32(code[12:]))

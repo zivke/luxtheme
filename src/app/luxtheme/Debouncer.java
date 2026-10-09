@@ -26,11 +26,6 @@ final class Debouncer {
         interruptedSince = -1;
     }
 
-    /** Forgets the current side, so the next reading starts a new countdown. */
-    void reset() {
-        setStable(null);
-    }
-
     /** Puts back a countdown that was saved with the getters below. */
     void restore(Boolean stable, Boolean candidate, long candidateSince, long interruptedSince) {
         this.stable = stable;
@@ -45,6 +40,12 @@ final class Debouncer {
      * @return the side to switch to now, or null if nothing should happen yet
      */
     Boolean update(boolean dark, long nowMs, long debounceMs, long graceMs) {
+        // An interruption that already lasted the grace time cancelled the countdown, even
+        // if no timer ran to notice (the device slept) and this reading is back on its side.
+        if (interruptedSince >= 0 && nowMs - interruptedSince >= graceMs) {
+            candidate = null;
+            interruptedSince = -1;
+        }
         if (stable != null && stable == dark) {
             if (candidate != null && interruptedSince < 0) {
                 interruptedSince = nowMs;

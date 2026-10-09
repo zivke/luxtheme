@@ -46,8 +46,10 @@ read it.
 
 - It replaces any dark-theme schedule set in Settings, because the command
   puts the theme in manual on/off mode.
-- The sensor is not read while the device is asleep. The switch happens after
-  it wakes.
+- The sensor is not read while the device is asleep. When it wakes, the
+  countdown is checked against the time that really passed, with the first new
+  reading deciding: a countdown that is over switches at once if the light
+  level still agrees, otherwise it starts over.
 - If the root command fails, the error is shown in the app and in the
   notification, and the switch is retried after the next debounce period
   (at least 60 seconds).
@@ -150,7 +152,7 @@ Changes are recorded in [changelog.md](changelog.md).
 
 | Path | Contents |
 |---|---|
-| `src/app/luxtheme/` | App code: settings screen, monitor service, boot receiver, debounce logic, root call |
+| `src/app/luxtheme/` | App code: settings screen, monitor service, boot receiver, debounce logic, root call, event log |
 | `res/` | Layout, strings, icons |
 | `tools/` | Packaging and signing helpers used by `build.sh` |
 | `test/` | JVM test for the debounce logic |

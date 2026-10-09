@@ -6,6 +6,20 @@ All notable user-visible changes to Lux Theme. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-09
+
+### Fixed
+- A countdown could survive the light level going back to the other side for
+  longer than 3 seconds while the device was asleep, and then switch as soon
+  as it woke. It now starts over, and the event list says so.
+- After the device slept, a countdown could finish late because its timer did
+  not count the time asleep. It is re-checked when the screen turns on.
+- A failed switch no longer throws away a countdown back to the current theme
+  that started while the root command was running.
+- Light levels below 1 lux are shown with two decimals instead of as `0.0`.
+- A countdown restored from a backup on another device could be picked up as
+  if it were still running. That state is no longer backed up.
+
 ## [1.2.0] - 2026-10-09
 
 ### Added

@@ -36,8 +36,8 @@ public class DebouncerTest {
         check(Boolean.FALSE.equals(d.check(25 * MIN, DB, GRACE)), "timer switches to light");
         check(d.check(26 * MIN, DB, GRACE) == null, "fires once");
 
-        // After reset the same side is attempted again (retry after a failed switch).
-        d.reset();
+        // A failed switch to light puts the old side back, so the same switch is attempted again.
+        d.setStable(true);
         check(d.update(false, 31 * MIN, DB, GRACE) == null, "retry waits");
         check(Boolean.FALSE.equals(d.check(36 * MIN, DB, GRACE)), "retry fires");
     }
@@ -72,6 +72,14 @@ public class DebouncerTest {
         // A cancelled countdown starts again from the full time.
         d.update(true, 14 * MIN, DB, GRACE);
         check(d.remaining(14 * MIN, DB) == DB, "restart from full after a real cancel");
+
+        // No timer ran (the device slept) while the reading was back for longer than the
+        // grace time: the next dark reading starts a new countdown instead of carrying on.
+        d.setStable(false);
+        d.update(true, 20 * MIN, DB, GRACE);
+        d.update(false, 21 * MIN, DB, GRACE);
+        check(d.update(true, 60 * MIN, DB, GRACE) == null, "no switch after a long unseen interruption");
+        check(d.remaining(60 * MIN, DB) == DB && !d.interrupted(), "countdown restarted from full");
     }
 
     static void strictWithoutGrace() {

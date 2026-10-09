@@ -5,8 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.hardware.Sensor;
@@ -43,6 +45,8 @@ public class LuxService extends Service
     private static final long RETRY_MIN_MS = 60_000;
     /** Readings on the old side shorter than this do not cancel a countdown. */
     private static final long GRACE_MS = 3_000;
+    /** How long a timer check waits for a fresh reading after a restart or wake-up. */
+    private static final long SETTLE_MS = 2_000;
 
     // Keys in the "state" preferences file (separate from the settings, whose
     // change listener would otherwise fire on every save).
@@ -60,6 +64,11 @@ public class LuxService extends Service
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Debouncer debouncer = new Debouncer();
     private final Runnable timer = this::onTimer;
+    /**
+     * Handler timers count uptime, which stops while the device sleeps, but the
+     * countdown runs on elapsedRealtime: re-arm the timer from it on wake-up.
+     */
+    private final BroadcastReceiver screenOn = new ScreenOnReceiver(this::checkAfterSettling);
 
     private SharedPreferences prefs;
     private SharedPreferences state;
@@ -106,12 +115,22 @@ public class LuxService extends Service
             setEvent("No light sensor on this device");
         }
         prefs.registerOnSharedPreferenceChangeListener(this);
-        // A restored countdown normally carries on at the first reading. This is the
-        // fallback if the sensor stays silent; it waits a moment so the reading can come first.
-        if (debouncer.pending() != null) {
-            handler.postDelayed(timer, Math.max(2_000,
-                    debouncer.nextCheckIn(SystemClock.elapsedRealtime(), debounceMs(), graceMs())));
+        registerReceiver(screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON));
+        checkAfterSettling();
+    }
+
+    /**
+     * Re-arms the timer for a countdown that went on without one (restored after a
+     * restart, or the device slept). A reading normally arrives first and decides;
+     * the timer is the fallback if the sensor stays silent.
+     */
+    private void checkAfterSettling() {
+        if (debouncer.pending() == null) {
+            return;
         }
+        handler.removeCallbacks(timer);
+        handler.postDelayed(timer, Math.max(SETTLE_MS,
+                debouncer.nextCheckIn(SystemClock.elapsedRealtime(), debounceMs(), graceMs())));
     }
 
     /**
@@ -157,6 +176,7 @@ public class LuxService extends Service
     public void onDestroy() {
         destroyed = true;
         prefs.unregisterOnSharedPreferenceChangeListener(this);
+        unregisterReceiver(screenOn);
         sensors.unregisterListener(this);
         handler.removeCallbacks(timer);
         io.shutdown();
@@ -211,24 +231,26 @@ public class LuxService extends Service
         boolean dark = lastLux < Prefs.threshold(prefs);
         long now = SystemClock.elapsedRealtime();
         Boolean before = debouncer.pending();
+        long beforeSince = debouncer.pendingSince();
         boolean wasInterrupted = debouncer.interrupted();
-        act(debouncer.update(dark, now, debounceMs(), graceMs()), before, wasInterrupted, now);
+        act(debouncer.update(dark, now, debounceMs(), graceMs()), before, beforeSince, wasInterrupted, now);
     }
 
     private void onTimer() {
         long now = SystemClock.elapsedRealtime();
         Boolean before = debouncer.pending();
+        long beforeSince = debouncer.pendingSince();
         boolean wasInterrupted = debouncer.interrupted();
-        act(debouncer.check(now, debounceMs(), graceMs()), before, wasInterrupted, now);
+        act(debouncer.check(now, debounceMs(), graceMs()), before, beforeSince, wasInterrupted, now);
     }
 
     /** Records what changed, then applies a decision or re-arms the timer. */
-    private void act(Boolean decision, Boolean before, boolean wasInterrupted, long now) {
+    private void act(Boolean decision, Boolean before, long beforeSince, boolean wasInterrupted, long now) {
         handler.removeCallbacks(timer);
         if (destroyed) {
             return;
         }
-        logChange(decision, before, wasInterrupted);
+        logChange(decision, before, beforeSince, wasInterrupted);
         saveState();
         if (decision != null) {
             apply(decision);
@@ -241,11 +263,17 @@ public class LuxService extends Service
         }
     }
 
-    private void logChange(Boolean decision, Boolean before, boolean wasInterrupted) {
+    private void logChange(Boolean decision, Boolean before, long beforeSince, boolean wasInterrupted) {
         Boolean after = debouncer.pending();
         if (decision != null) {
             EventLog.add("Debounce time reached at " + lux() + ": switching to " + name(decision)
                     + ignored(blips));
+            blips = 0;
+        } else if (after != null && after.equals(before) && debouncer.pendingSince() != beforeSince) {
+            // The light level was back for longer than the grace time while nothing was
+            // watching (the device slept), so the countdown starts over.
+            EventLog.add(lux() + ": countdown to " + name(after) + " restarted, the light level was on the "
+                    + name(!after) + " side meanwhile" + ignored(blips - 1));
             blips = 0;
         } else if (after != null && !after.equals(before)) {
             blips = 0;
@@ -301,8 +329,10 @@ public class LuxService extends Service
         } else {
             setEvent("Could not switch: " + error);
             EventLog.add("Could not switch to " + name(dark) + ": " + error);
-            // Forget the side so the same switch is attempted again after the next wait.
-            debouncer.reset();
+            // The theme is still on the old side: put that back, so the same switch is
+            // attempted again after the next wait. A countdown back to the old side that
+            // started meanwhile is dropped with it, since the theme is already there.
+            debouncer.setStable(!dark);
             if (!Float.isNaN(lastLux)) {
                 evaluate();
             }
@@ -348,6 +378,20 @@ public class LuxService extends Service
 
     private String lux() {
         return Float.isNaN(lastLux) ? "no reading yet" : MainActivity.trim(lastLux) + " lx";
+    }
+
+    /** Static, not an inner or anonymous class: D8 crashes on those (see CLAUDE.md). */
+    private static final class ScreenOnReceiver extends BroadcastReceiver {
+        private final Runnable action;
+
+        ScreenOnReceiver(Runnable action) {
+            this.action = action;
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            action.run();
+        }
     }
 
     private static String name(boolean dark) {

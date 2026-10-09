@@ -153,11 +153,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         }).start();
     }
 
-    /** 12.0 -> "12", 3.5 -> "3.5" */
+    /** 12.0 -> "12", 3.5 -> "3.5", 0.04 -> "0.04" (two decimals below 1 lx, where they matter) */
     static String trim(float value) {
         if (value == Math.rint(value) && Math.abs(value) < 1e7) {
             return String.valueOf((long) value);
         }
-        return String.format(Locale.US, "%.1f", value);
+        String text = String.format(Locale.US, Math.abs(value) < 1 ? "%.2f" : "%.1f", value);
+        // Rounding can leave zeros: "3.0" -> "3", "0.50" -> "0.5".
+        return text.contains(".") ? text.replaceAll("\\.?0+$", "") : text;
     }
 }

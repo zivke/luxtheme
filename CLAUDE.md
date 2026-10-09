@@ -65,17 +65,20 @@ All app code is in `src/app/luxtheme/`, plain `android.*` APIs, no libraries.
   (`interruptedSince`). `update(dark, now, debounce, grace)` feeds a reading,
   `check(now, debounce, grace)` is the timer path, both return the side to
   switch to or `null`. An interruption never switches and cancels only after
-  `grace`. `nextCheckIn` is when the timer is next needed. `reset()` forgets
-  `stable` so the same switch is attempted again; `restore()` and the getters
-  are for saving a countdown.
+  `grace`. `nextCheckIn` is when the timer is next needed. `update` first
+  drops an interruption that has already lasted `grace`, in case no timer ran
+  (the device slept). `restore()` and the getters are for saving a countdown.
 - **`LuxService.java`** — foreground service, `START_STICKY`. Registers the
   light sensor, feeds readings to the `Debouncer`, and arms a `Handler` timer
   for the remaining debounce time, because the sensor only reports changes
   and a steady level would otherwise never finish the wait. Time base is
   `SystemClock.elapsedRealtime()`. Seeds `stable` from the current system
   theme on start, so a manual theme change sticks until the light level next
-  crosses the threshold. A failed switch calls `reset()` and retries after
-  the next debounce period, at least `RETRY_MIN_MS`. Everything runs on the
+  crosses the threshold. A failed switch puts `stable` back to the old side and
+  retries after the next debounce period, at least `RETRY_MIN_MS`. `Handler`
+  timers count uptime, which stops in sleep, so `ACTION_SCREEN_ON` re-arms the
+  timer from `elapsedRealtime` (`checkAfterSettling`, also used after a
+  restore), giving a fresh reading `SETTLE_MS` to arrive first. Everything runs on the
   main thread except the `su` call (single-thread executor). `instance` and
   `status()` are how `MainActivity` reads its state.
   The countdown is written to the `state` preferences file whenever it changes
@@ -99,11 +102,15 @@ All app code is in `src/app/luxtheme/`, plain `android.*` APIs, no libraries.
 - **`Prefs.java`** — `SharedPreferences` keys and defaults. `debounce_s` is in
   seconds; `debounce_min` is the 1.0.0 key, still read once for migration.
 
-`res/` holds one layout (`layout/main.xml`), `values/strings.xml`, the
+`res/` holds one layout (`layout/main.xml`), `values/strings.xml`,
+`xml/backup.xml` (keeps the `state` file out of backups), the
 adaptive launcher icon and the notification icon (vector drawables).
 
 ## Conventions
 
+- No inner (non-static) or anonymous classes: the D8 in build-tools 34 crashes
+  on them as compiled by the JDK 21 `javac` (`NullPointerException ...
+  String.length()`). Use lambdas or `static` nested classes.
 - Keep `Debouncer` free of Android imports so `make test` stays a plain JVM
   test. Add a case to `test/app/luxtheme/DebouncerTest.java` when the
   switching rules change.
