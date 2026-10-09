@@ -95,14 +95,16 @@ All app code is in `src/app/luxtheme/`, plain `android.*` APIs, no libraries.
   Returns `null` on success or a short error string.
 - **`MainActivity.java`** — settings screen: live lux reading (its own sensor
   listener while visible), enable switch, threshold and debounce fields, two
-  buttons that run the root command directly, and the event list. A theme change recreates the
+  buttons that run the root command directly, the event list, and an "About"
+  dialog from the options menu (`res/menu/main.xml`, text in `about_text`). A theme change recreates the
   activity, which is why the test result is kept in a static field.
 - **`BootReceiver.java`** — starts the service after `BOOT_COMPLETED` and
   `MY_PACKAGE_REPLACED` when the enable switch is on.
 - **`Prefs.java`** — `SharedPreferences` keys and defaults. `debounce_s` is in
   seconds; `debounce_min` is the 1.0.0 key, still read once for migration.
 
-`res/` holds one layout (`layout/main.xml`), `values/strings.xml`,
+`res/` holds one layout (`layout/main.xml`), the options menu
+(`menu/main.xml`), `values/strings.xml`,
 `xml/backup.xml` (keeps the `state` file out of backups), the
 adaptive launcher icon and the notification icon (vector drawables).
 

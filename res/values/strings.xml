@@ -13,4 +13,22 @@
     <string name="hint">Needs root (Magisk). Tap one of the test buttons once and grant superuser access when Magisk asks.</string>
     <string name="channel_name">Light monitor</string>
     <string name="log_label">Recent events (newest first)</string>
+    <string name="about">About</string>
+    <string name="about_title">About Lux Theme</string>
+    <!-- %1$s is the version. HTML: shown with Html.fromHtml, links are clickable. -->
+    <string name="about_text"><![CDATA[
+        <b>Version %1$s</b><br><br>
+        Switches the system theme between light and dark from the ambient light
+        sensor, once the light level has stayed on one side of the threshold for
+        the debounce time. Needs root.<br><br>
+        © 2026 zivke85, released under the
+        <a href=\"https://opensource.org/license/0bsd\">0BSD licence</a>.<br><br>
+        Source code, help and changelog:<br>
+        <a href=\"https://github.com/zivke/luxtheme\">github.com/zivke/luxtheme</a><br><br>
+        Provided “as is”, without warranty of any kind. You use it entirely at
+        your own risk.<br><br>
+        If you find it useful, you can support it on
+        <a href=\"https://patreon.com/zivke\">Patreon</a> or
+        <a href=\"https://paypal.me/zivke85\">PayPal</a>.
+    ]]></string>
 </resources>

@@ -42,6 +42,9 @@ read it.
    debounce time, then tap **Save**.
 4. Turn on **Switch theme automatically**.
 
+**About** in the menu (⋮ at the top right) shows the installed version, the
+licence and a link back to this repository.
+
 ## Limits
 
 - It replaces any dark-theme schedule set in Settings, because the command

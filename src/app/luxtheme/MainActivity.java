@@ -1,7 +1,9 @@
 package app.luxtheme;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -9,6 +11,10 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -75,6 +81,40 @@ public class MainActivity extends Activity implements SensorEventListener {
         findViewById(R.id.save).setOnClickListener(v -> save());
         findViewById(R.id.test_dark).setOnClickListener(v -> test(true));
         findViewById(R.id.test_light).setOnClickListener(v -> test(false));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.about) {
+            showAbout();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showAbout() {
+        String version;
+        try {
+            version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            version = "?";
+        }
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.about_title)
+                .setMessage(Html.fromHtml(getString(R.string.about_text, version), Html.FROM_HTML_MODE_COMPACT))
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+        // Links in a dialog message only respond to taps with a movement method.
+        TextView message = dialog.findViewById(android.R.id.message);
+        if (message != null) {
+            message.setMovementMethod(LinkMovementMethod.getInstance());
+        }
     }
 
     @Override

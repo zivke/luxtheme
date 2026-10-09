@@ -6,6 +6,12 @@ All notable user-visible changes to Lux Theme. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-09
+
+### Added
+- "About" in the menu (⋮ at the top right): version, what the app does,
+  licence, links to the source code and to donations, and the disclaimer.
+
 ## [1.3.0] - 2026-10-09
 
 ### Fixed
