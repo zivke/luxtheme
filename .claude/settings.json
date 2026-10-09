@@ -12,9 +12,6 @@
       "Bash(cat .env*)",
       "Read(./.env)",
       "Read(~/.android-keys/**)"
-    ],
-    "ask": [
-      "Bash(git commit:*)"
     ]
   },
   "statusLine": {
